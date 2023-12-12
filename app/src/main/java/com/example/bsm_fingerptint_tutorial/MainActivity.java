@@ -71,18 +71,6 @@ public class MainActivity extends AppCompatActivity {
                 public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                     super.onAuthenticationSucceeded(result);
 
-                    String plaintext = "Tekst do zaszyforwania";
-                    byte[] encryptedInfo;
-
-                    try {
-                        encryptedInfo = result.getCryptoObject().getCipher().doFinal(
-                                plaintext.getBytes(Charset.defaultCharset()));
-                    } catch (GeneralSecurityException e) {
-                        throw new RuntimeException(e);
-                    }
-
-                    Log.d("MY_LOGS", "Success! Encrypted txt: " + Arrays.toString(encryptedInfo));
-
                     Toast.makeText(getApplicationContext(),"Authentication succeeded!", Toast.LENGTH_SHORT).show();
 
                     Intent intent = new Intent(getApplicationContext(), NotepadActivity.class);
@@ -104,53 +92,12 @@ public class MainActivity extends AppCompatActivity {
                 .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 .build();
 
-
-        try {
-            generateSecretKey(new KeyGenParameterSpec.Builder(KEY_NAME, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                    .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
-                    .setUserAuthenticationRequired(true)
-                    .setInvalidatedByBiometricEnrollment(true)
-                    .build()
-                    );
-        } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
-        }
-
-
         btnLogIn.setOnClickListener(view -> {
-            try {
-                Cipher cipher = getCipher();
-                SecretKey secretKey = getSecretKey();
-                cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-                biometricPrompt.authenticate(promptInfo, new BiometricPrompt.CryptoObject(cipher));
-            } catch (GeneralSecurityException | IOException e) {
-                throw new RuntimeException(e);
-            }
+                biometricPrompt.authenticate(promptInfo);
+
         });
 
     }
-
-
-
-    private void generateSecretKey(KeyGenParameterSpec keyGenParameterSpec) throws GeneralSecurityException {
-        KeyGenerator keyGenerator = KeyGenerator.getInstance("AES", "AndroidKeyStore");
-        keyGenerator.init(keyGenParameterSpec);
-        keyGenerator.generateKey();
-    }
-
-    private SecretKey getSecretKey() throws GeneralSecurityException, IOException {
-        KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
-
-        keyStore.load(null);
-        return ((SecretKey)keyStore.getKey(KEY_NAME, null));
-    }
-
-    private Cipher getCipher() throws GeneralSecurityException{
-        return Cipher.getInstance("AES/CBC/PKCS7Padding");
-        //KeyProperties.KEY_ALGORITHM_AES + "/" + KeyProperties.BLOCK_MODE_CBC + "/" + KeyProperties.ENCRYPTION_PADDING_PKCS7
-    }
-
 
 }
 
