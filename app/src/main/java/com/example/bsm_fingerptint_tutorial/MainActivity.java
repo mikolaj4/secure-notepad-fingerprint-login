@@ -9,26 +9,15 @@ import androidx.core.content.ContextCompat;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import java.util.Arrays;
 import java.util.concurrent.Executor;
 
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String KEY_NAME = "nazwaKlucza";
     Button btnLogIn;
 
     @Override
@@ -86,16 +75,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         promptInfo = new BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Biometric login for my app")
+                .setTitle("Biometric login for your notes")
                 .setSubtitle("Log in using biometric credential")
-                .setNegativeButtonText("xd")
+                .setNegativeButtonText(" ")
                 .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 .build();
 
-        btnLogIn.setOnClickListener(view -> {
-                biometricPrompt.authenticate(promptInfo);
-
-        });
+        btnLogIn.setOnClickListener(view -> biometricPrompt.authenticate(promptInfo));
 
     }
 

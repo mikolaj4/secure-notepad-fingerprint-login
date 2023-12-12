@@ -2,17 +2,12 @@ package com.example.bsm_fingerptint_tutorial;
 
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
-import android.util.Log;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -23,14 +18,11 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class UtilsCipher {
 
-    public static SecretKey generateRandomKey(String keyAlias) throws NoSuchProviderException,
-            NoSuchAlgorithmException {
-
-        try {
+    // generates random key and saves it to keystore under keyAlias alias
+    public static SecretKey generateRandomKey(String keyAlias) throws GeneralSecurityException {
             KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
             KeyGenParameterSpec keyGenParameterSpec = new KeyGenParameterSpec.Builder(
                     keyAlias,
@@ -41,16 +33,11 @@ public class UtilsCipher {
                     .build();
 
             keyGenerator.init(keyGenParameterSpec);
-            Log.i("KEY_GENERATEOT", keyGenerator.generateKey().toString());
             return keyGenerator.generateKey();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-
-
     }
 
+
+    // returns key from keystore saved under keyAlias alias
     public static SecretKey retrieveKey(String keyAlias) throws Exception {
         KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
         keyStore.load(null);
@@ -84,8 +71,5 @@ public class UtilsCipher {
         new SecureRandom().nextBytes(iv);
         return new IvParameterSpec(iv);
     }
-
-
-
 
 }

@@ -2,15 +2,11 @@ package com.example.bsm_fingerptint_tutorial;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.biometric.BiometricPrompt;
-import androidx.lifecycle.LifecycleCoroutineScope;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,17 +17,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
@@ -39,13 +29,11 @@ public class NotepadActivity extends AppCompatActivity {
 
     private List<Note> noteList;
     private LinearLayout notesContainer;
-    private static final String SHARED_NAME_NOTES = "Notatki";
-
-    private static final String KEY_NAME = "nazwaKluczaa";
-
-
-
+    private static final String SHARED_NAME_NOTES = "Notes";
+    private static final String KEY_NAME = "MyKey1";
     Button buttonLogout, buttonAddNote;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,7 +45,7 @@ public class NotepadActivity extends AppCompatActivity {
         try {
             loadNotesFromPreferencesToList();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            Log.e("Error from NotepadActivity", "Caused by loadNotesFromPreferencesToList() invoked from onCreate()" + e.getMessage(), e);
         }
         displayNotes();
 
@@ -99,10 +87,8 @@ public class NotepadActivity extends AppCompatActivity {
 
                 try {
                     saveNotesToPreferences("add");
-                } catch (GeneralSecurityException e) {
-                    throw new RuntimeException(e);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                } catch (GeneralSecurityException | IOException e) {
+                    Log.e("Error from NotepadActivity", "Caused by saveNotesToPreferences() invoked from showAddNoteDialog()" + e.getMessage(), e);
                 }
 
                 createNoteView(note);
@@ -146,10 +132,8 @@ public class NotepadActivity extends AppCompatActivity {
 
                 try {
                     saveNotesToPreferences("add");
-                } catch (GeneralSecurityException e) {
-                    throw new RuntimeException(e);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                } catch (GeneralSecurityException | IOException e) {
+                    Log.e("Error from NotepadActivity", "Caused by saveNotesToPreferences() invoked from showEditNoteDialog()" + e.getMessage(), e);
                 }
 
             }else {
@@ -164,38 +148,37 @@ public class NotepadActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
+
     private void saveNotesToPreferences(String mode) throws GeneralSecurityException, IOException {
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_NAME_NOTES, MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
-
-            if (mode.equals("del")){
-                int noteCount = sharedPreferences.getInt("_notecount_", 0);
-                for(int i=0; i<noteCount; i++){
-                    editor.remove(i + "_title_");
-                    editor.remove(i + "_content_");
-                }
+        if (mode.equals("del")){
+            int noteCount = sharedPreferences.getInt("_notecount_", 0);
+            for(int i=0; i<noteCount; i++){
+                editor.remove(i + "_title_");
+                editor.remove(i + "_content_");
             }
+        }
 
-            IvParameterSpec iv = UtilsCipher.generateIv();
-            String ivString = ivToString(iv);
-            saveIvStringToShared(ivString);
+        IvParameterSpec iv = UtilsCipher.generateIv();
+        String ivString = ivToString(iv);
+        saveIvStringToShared(ivString);
 
-            SecretKey secretKey = UtilsCipher.generateRandomKey(KEY_NAME);
+        SecretKey secretKey = UtilsCipher.generateRandomKey(KEY_NAME);
 
+        editor.putInt("_notecount_", noteList.size());
+        for(int i=0; i<noteList.size(); i++){
+            Note note = noteList.get(i);
 
-            editor.putInt("_notecount_", noteList.size());
-            for(int i=0; i<noteList.size(); i++){
-                Note note = noteList.get(i);
+            String encryptedTitle = UtilsCipher.encrypt("AES/CBC/PKCS7Padding", note.getTitle(), secretKey, iv);
+            String encryptedContent = UtilsCipher.encrypt("AES/CBC/PKCS7Padding", note.getContent(), secretKey, iv);
 
-                String encryptedTitle = UtilsCipher.encrypt("AES/CBC/PKCS7Padding", note.getTitle(), secretKey, iv);
-                String encryptedContent = UtilsCipher.encrypt("AES/CBC/PKCS7Padding", note.getContent(), secretKey, iv);
+            editor.putString(i + "_title_", encryptedTitle);
+            editor.putString(i + "_content_", encryptedContent);
+        }
 
-                editor.putString(i + "_title_", encryptedTitle);
-                editor.putString(i + "_content_", encryptedContent);
-            }
-
-            editor.apply();
+        editor.apply();
 
 
     }
@@ -204,24 +187,25 @@ public class NotepadActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_NAME_NOTES, MODE_PRIVATE);
         int noteCount = sharedPreferences.getInt("_notecount_", 0);
 
-        String ivString = getIVStringFromShared();
-        IvParameterSpec iv = stringToIv(ivString);
+        if (noteCount!=0){
+            String ivString = getIVStringFromShared();
+            IvParameterSpec iv = stringToIv(ivString);
 
-        SecretKey secretKey = UtilsCipher.retrieveKey(KEY_NAME);
+            SecretKey secretKey = UtilsCipher.retrieveKey(KEY_NAME);
 
+            for(int i=0; i<noteCount; i++){
+                String title = sharedPreferences.getString(i + "_title_", "");
+                String content = sharedPreferences.getString(i + "_content_", "");
 
-        for(int i=0; i<noteCount; i++){
-            String title = sharedPreferences.getString(i + "_title_", "");
-            String content = sharedPreferences.getString(i + "_content_", "");
+                String decryptedTitle = UtilsCipher.decrypt("AES/CBC/PKCS7Padding", title, secretKey, iv);
+                String decryptedContent = UtilsCipher.decrypt("AES/CBC/PKCS7Padding", content, secretKey, iv);
 
-            String decryptedTitle = UtilsCipher.decrypt("AES/CBC/PKCS7Padding", title, secretKey, iv);
-            String decryptedContent = UtilsCipher.decrypt("AES/CBC/PKCS7Padding", content, secretKey, iv);
+                Note note = new Note();
+                note.setTitle(decryptedTitle);
+                note.setContent(decryptedContent);
 
-            Note note = new Note();
-            note.setTitle(decryptedTitle);
-            note.setContent(decryptedContent);
-
-            noteList.add(note);
+                noteList.add(note);
+            }
         }
     }
 
@@ -247,7 +231,6 @@ public class NotepadActivity extends AppCompatActivity {
         byte[] ivBytes = ivParameterSpec.getIV();
         return Base64.getEncoder().encodeToString(ivBytes);
     }
-
 
 
     private void createNoteView(final Note note){
@@ -284,10 +267,9 @@ public class NotepadActivity extends AppCompatActivity {
         noteList.remove(note);
         try {
             saveNotesToPreferences("del");
-        } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (GeneralSecurityException | IOException e) {
+            Log.e("Error from NotepadActivity", "Caused by saveNotesToPreferences() invoked from deleteNoteAndRefresh()" + e.getMessage(), e);
+
         }
         refreshNotesView();
     }
@@ -296,23 +278,8 @@ public class NotepadActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Delete this note");
         builder.setMessage("Are you sure you want to delete it?");
-        builder.setPositiveButton("Delete", (dialogInterface, i) -> {
-            deleteNoteAndRefresh(note);
-        });
+        builder.setPositiveButton("Delete", (dialogInterface, i) -> deleteNoteAndRefresh(note));
         builder.setNegativeButton("Cancel", null);
         builder.show();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
