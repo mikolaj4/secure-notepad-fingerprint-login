@@ -150,7 +150,7 @@ public class NotepadActivity extends AppCompatActivity {
 
 
     private void saveNotesToPreferences(String mode) throws GeneralSecurityException, IOException {
-        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_NAME_NOTES, MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_NAME_NOTES, MODE_WORLD_READABLE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
         if (mode.equals("del")){

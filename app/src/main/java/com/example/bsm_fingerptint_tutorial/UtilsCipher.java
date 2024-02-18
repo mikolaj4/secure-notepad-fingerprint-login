@@ -30,6 +30,8 @@ public class UtilsCipher {
                     .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
                     .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
                     .setRandomizedEncryptionRequired(false)
+                    .setUserAuthenticationRequired(true)
+                    .setUserAuthenticationValidityDurationSeconds(300)
                     .build();
 
             keyGenerator.init(keyGenParameterSpec);
