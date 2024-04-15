@@ -1,4 +1,4 @@
-# fingerprint-login-notepad
+# secure-notepad-fingerprint-login
 
 Aplikacja to notatnik do którego dostęp zabezpieczony jest odciskiem palca. Przeznacozna dla 1 użytkownika. 
 
